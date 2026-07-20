@@ -22,11 +22,12 @@ MODEL_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "../../models/Qwen3-14B-I
 PROGRESS_LIB = "/benchmark_lib/progress"
 
 # Result CSV Path (ตามกติกา)
-RESULT_CSV_PATH = "/lustrefs/disk/project/zz991000-zdeva/zz991012/my_workspace/submission/result/submission.csv"
+RESULT_CSV_PATH = "/result/submission.csv"
 
 # Dataset Path (Phase 1 คือ dataset.csv, ในอนาคตอาจจะเป็น test.json ก็แก้ไขได้ที่นี่)
 # เนื่องจาก Phase 1 เป็น dataset.csv ผมใช้ path เดียวกับ RESULT_CSV_PATH แต่อยู่ในโฟลเดอร์ model/test ตามตัวอย่าง
-DATASET_PATH = "/lustrefs/disk/project/zz991000-zdeva/zz991012/my_workspace/submission/model/test/dataset.csv"
+DATASET_PATH = "/model/test/dataset.csv"
+
 
 # ==========================================
 # EXECUTION CONFIGURATION

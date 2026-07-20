@@ -1,0 +1,18 @@
+services:
+  model:
+    image: "trustworth_competition"
+    build: .
+    platform: linux/amd64
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./model/test:/model/test:ro
+      - ./result:/result:rw
+      - ./benchmark_lib:/benchmark_lib:ro
+    working_dir: /
+    command: python3 run/main.py

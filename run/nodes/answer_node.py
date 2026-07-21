@@ -7,8 +7,8 @@ from nodes.llm_clients import llm_client
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILLS_DIR = os.path.join(CURRENT_DIR, "..", "skills")
 
-ANSWER_PROMPT_PATH = os.path.join(SKILLS_DIR, "answer_system_prompt.md")
-REFUSAL_PROMPT_PATH = os.path.join(SKILLS_DIR, "refusal_system_prompt.md")
+ANSWER_PROMPT_PATH = os.path.join(SKILLS_DIR, "answer", "SKILL.md")
+REFUSAL_PROMPT_PATH = os.path.join(SKILLS_DIR, "refusal", "SKILL.md")
 
 with open(ANSWER_PROMPT_PATH, "r", encoding="utf-8") as f:
     ANSWER_PROMPT = f.read()

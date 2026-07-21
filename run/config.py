@@ -16,8 +16,8 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
 # Model Path (ตามตัวอย่างที่ให้มา)
-Qwen_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "../../models/Qwen3-14B-Instruct"))
-Guard_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "../../models/wildguard"))
+Qwen_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "../../models/Qwen3-14B-Instruct-AWQ"))
+Guard_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "../../models/wildguard-awq"))
 # Progress Lib Path (ตามกติกา)
 PROGRESS_LIB = "/benchmark_lib/progress"
 

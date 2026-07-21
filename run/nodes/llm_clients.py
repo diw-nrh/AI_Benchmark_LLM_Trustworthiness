@@ -43,9 +43,11 @@ class LLMClient:
         engine_args = AsyncEngineArgs(
             model=self.model_name,
             tensor_parallel_size=1,
-            gpu_memory_utilization=0.9,
-            max_model_len=32768,
-            enforce_eager=True
+            gpu_memory_utilization=0.85,
+            max_model_len=8192,
+            enforce_eager=True,
+            quantization="awq",
+            dtype="float16"
         )
         
         self.engine = AsyncLLMEngine.from_engine_args(engine_args)
@@ -101,9 +103,11 @@ class WildGuardClient:
         engine_args = AsyncEngineArgs(
             model=self.model_name,
             tensor_parallel_size=1,
-            gpu_memory_utilization=0.9,
+            gpu_memory_utilization=0.85,
             max_model_len=2048,
-            enforce_eager=True
+            enforce_eager=True,
+            quantization="awq",
+            dtype="float16"
         )
 
         self.engine = AsyncLLMEngine.from_engine_args(engine_args)

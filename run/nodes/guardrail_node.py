@@ -5,7 +5,7 @@ from nodes.llm_clients import llm_client, wildguard_client
 
 # Load System Prompt for Translation
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-TRANSLATION_PROMPT_PATH = os.path.join(CURRENT_DIR, "..", "skills", "translation_prompt.md")
+TRANSLATION_PROMPT_PATH = os.path.join(CURRENT_DIR, "..", "skills", "translation", "SKILL.md")
 
 with open(TRANSLATION_PROMPT_PATH, "r", encoding="utf-8") as f:
     TRANSLATION_PROMPT = f.read()

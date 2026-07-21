@@ -40,8 +40,10 @@ def initialize_system():
     """
     print("--- SYSTEM INITIALIZATION ---")
     
-    from nodes.llm_clients import llm_client
+    from nodes.llm_clients import llm_client, wildguard_client
+    
     llm_client.initialize()
+    wildguard_client.initialize()
     
     print("--- INITIALIZATION COMPLETE ---")
 

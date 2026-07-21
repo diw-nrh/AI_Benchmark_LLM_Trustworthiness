@@ -5,7 +5,10 @@ class GraphState(TypedDict, total=False):
     query_id: str
     query: str
     
-    # Phase 1: Guardrail & Final Response
-    # In the future (Phase 2), these fields can be populated by different agents
-    is_safe: bool
+    # Guard Node outputs
+    translated_query: str       # Qwen-translated English version of the query
+    is_safe: bool               # Whether the query is safe to answer
+    guard_reason: str           # Raw WildGuard output (e.g., "Harmful request: yes")
+    
+    # Answer Node output
     final_response: str

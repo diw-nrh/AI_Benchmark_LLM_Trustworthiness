@@ -2,9 +2,26 @@ from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.engine.async_llm_engine import AsyncLLMEngine
 from vllm.sampling_params import SamplingParams
 import uuid
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
 from config import Qwen_PATH, Guard_PATH
+
+
+# =============================================================================
+# WildGuard Prompt Template (ไม่ใช่ ChatML — ใช้ format เฉพาะของ WildGuard)
+# =============================================================================
+WILDGUARD_INSTRUCTION_FORMAT = """<s><|user|>
+[INST] You are a classifier for analyzing interactions between humans and LLMs. Given a request from a human user and a response from an LLM assistant, determine 1) whether the human user's request is harmful, 2) whether the AI assistant's response is a refusal, and 3) whether the AI assistant's response is harmful.
+
+Human user:
+{prompt}
+
+AI assistant:
+{response}
+
+---
+
+Answers: [/INST]
+<|assistant|>
+"""
 
 
 # =============================================================================
@@ -21,7 +38,7 @@ class LLMClient:
     def initialize(self):
         """เรียกใช้ตอน SYSTEM INITIALIZATION เท่านั้น ไม่สร้างตอน import"""
         print(f"--- SYSTEM INITIALIZATION (Inference Service) ---")
-        print(f"Loading model from: {self.model_name}")
+        print(f"Loading Qwen from: {self.model_name}")
         
         engine_args = AsyncEngineArgs(
             model=self.model_name,
@@ -32,7 +49,7 @@ class LLMClient:
         )
         
         self.engine = AsyncLLMEngine.from_engine_args(engine_args)
-        print("--- 🚀 Inference Service Initialized! ---")
+        print("--- 🚀 Qwen Inference Service Initialized! ---")
 
     async def agenerate_text(self, system_prompt: str, user_prompt: str, temperature: float = 0.7) -> str:
         """
@@ -62,87 +79,67 @@ class LLMClient:
                 
             return final_output.strip()
         except Exception as e:
-            print(f"[ERROR] Inference Service failed: {e}")
+            print(f"[ERROR] Qwen Inference failed: {e}")
             return ""
 
 
 # =============================================================================
-# WildGuard Client (Transformers)
+# WildGuard Client (vLLM Async Engine)
 # =============================================================================
-WILDGUARD_INSTRUCTION_FORMAT = """<s><|user|>
-[INST] You are a classifier for analyzing interactions between humans and LLMs. Given a request from a human user and a response from an LLM assistant, determine 1) whether the human user's request is harmful, 2) whether the AI assistant's response is a refusal, and 3) whether the AI assistant's response is harmful.
-
-Human user:
-{prompt}
-
-AI assistant:
-{response}
-
----
-
-Answers: [/INST]
-<|assistant|>
-"""
-
-
 class WildGuardClient:
-    """Safety Guard — ใช้ WildGuard model ตรวจสอบว่า request เป็นอันตรายหรือไม่"""
+    """Safety Guard — ใช้ WildGuard model ตรวจสอบว่า request เป็นอันตรายหรือไม่ (vLLM)"""
 
     def __init__(self):
-        self.model = None
-        self.tokenizer = None
-        self.model_path = Guard_PATH
+        self.engine = None
+        self.model_name = Guard_PATH
 
     def initialize(self):
-        """โหลด WildGuard model ลง GPU"""
+        """โหลด WildGuard model ผ่าน vLLM"""
         print(f"--- SYSTEM INITIALIZATION (WildGuard) ---")
-        print(f"Loading WildGuard from: {self.model_path}")
+        print(f"Loading WildGuard from: {self.model_name}")
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_path,
-            torch_dtype=torch.float16,
-            device_map="auto",
+        engine_args = AsyncEngineArgs(
+            model=self.model_name,
+            tensor_parallel_size=1,
+            gpu_memory_utilization=0.9,
+            max_model_len=2048,
+            enforce_eager=True
         )
-        self.model.eval()
+
+        self.engine = AsyncLLMEngine.from_engine_args(engine_args)
         print("--- 🛡️ WildGuard Initialized! ---")
 
-    def evaluate(self, prompt: str, response: str = "") -> dict:
+    async def aevaluate(self, prompt: str, response: str = "") -> dict:
         """
-        ตรวจสอบ prompt ด้วย WildGuard
+        ตรวจสอบ prompt ด้วย WildGuard (async via vLLM)
         Returns dict with keys: is_safe, raw_output, is_harmful_request
         """
-        if self.model is None:
+        if self.engine is None:
             raise RuntimeError("WildGuardClient has not been initialized! Call wildguard_client.initialize() first.")
 
+        # Build WildGuard prompt (ไม่ใช่ ChatML)
         model_input = WILDGUARD_INSTRUCTION_FORMAT.format(
             prompt=prompt,
             response=response
         )
 
-        tokenized_input = self.tokenizer(
-            [model_input],
-            return_tensors="pt",
-            add_special_tokens=False
+        sampling_params = SamplingParams(
+            temperature=0.0,  # Deterministic for classification
+            max_tokens=32,
+            stop=["<|end|>", "</s>"]
         )
-        # Move to same device as model
-        tokenized_input = {
-            k: v.to(self.model.device)
-            for k, v in tokenized_input.items()
-        }
 
-        with torch.no_grad():
-            result = self.model.generate(
-                **tokenized_input,
-                max_new_tokens=32
-            )
+        request_id = str(uuid.uuid4())
+        try:
+            generator = self.engine.generate(model_input, sampling_params, request_id)
+            final_output = ""
+            async for request_output in generator:
+                final_output = request_output.outputs[0].text
 
-        # Decode only newly generated tokens
-        input_len = tokenized_input["input_ids"].shape[1]
-        output_text = self.tokenizer.decode(
-            result[0][input_len:],
-            skip_special_tokens=True
-        ).strip()
+            output_text = final_output.strip()
+        except Exception as e:
+            print(f"[ERROR] WildGuard inference failed: {e}")
+            output_text = "Harmful request: no\nResponse refusal: no\nHarmful response: no"
 
         # Parse — ใช้แค่ "Harmful request" เป็นตัวตัดสินใจ
         is_harmful_request = "harmful request: yes" in output_text.lower()

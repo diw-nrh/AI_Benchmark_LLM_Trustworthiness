@@ -41,7 +41,7 @@ async def guard_node(state: GraphState) -> GraphState:
 
     # --- Step 2: Check with WildGuard ---
     print(f"🛡️ [{query_id}] Running WildGuard safety check...")
-    guard_result = wildguard_client.evaluate(prompt=translated)
+    guard_result = await wildguard_client.aevaluate(prompt=translated)
 
     is_safe = guard_result["is_safe"]
     raw_output = guard_result["raw_output"]

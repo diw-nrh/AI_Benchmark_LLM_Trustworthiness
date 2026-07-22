@@ -36,14 +36,15 @@ def initialize_system():
     """
     --- SYSTEM INITIALIZATION ---
     เรียกก่อนเริ่มประมวลผล เพื่อโหลดโมเดลลง GPU
-    (แนวเดียวกับโค้ด LANTA เดิม)
+    ใช้ Qwen3-14B-Instruct ตัวเดียว (ไม่มี WildGuard แล้ว)
     """
     print("--- SYSTEM INITIALIZATION ---")
     
-    from nodes.llm_clients import llm_client, wildguard_client
+    from nodes.llm_clients import llm_client
+    # [OLD] from nodes.llm_clients import wildguard_client
     
     llm_client.initialize()
-    wildguard_client.initialize()
+    # [OLD] wildguard_client.initialize()  # ไม่ใช้ WildGuard แล้ว
     
     print("--- INITIALIZATION COMPLETE ---")
 
@@ -78,7 +79,7 @@ async def task_wrapper(inputs: dict, semaphore: asyncio.Semaphore, progress_stat
 async def run_pipeline():
     print("\n============================================")
     print("       TRUSTWORTHINESS CHALLENGE (PHASE 1)    ")
-    print("       Logical Microservice (Offline)       ")
+    print("       Multi-Agent Debate Flow (Qwen Only) ")
     print("============================================\n")
     
     start_time = time.time()

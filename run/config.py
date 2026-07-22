@@ -15,9 +15,12 @@ os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
-# Model Path (ตามตัวอย่างที่ให้มา)
-Qwen_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "../../models/Qwen3-14B-Instruct-AWQ"))
-Guard_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "../../models/wildguard"))
+# Model Path — ใช้ Qwen3-14B-Instruct (Full, ไม่ใช่ AWQ)
+Qwen_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "../../models/Qwen3-14B-Instruct"))
+
+# [OLD] WildGuard — ไม่ใช้แล้ว เปลี่ยนมาใช้ Multi-Agent Debate Flow แทน
+# Guard_PATH = os.path.abspath(os.path.join(CURRENT_DIR, "../../models/wildguard"))
+
 # Progress Lib Path (ตามกติกา)
 PROGRESS_LIB = "/benchmark_lib/progress"
 

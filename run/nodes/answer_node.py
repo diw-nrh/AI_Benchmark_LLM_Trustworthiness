@@ -19,31 +19,35 @@ with open(REFUSAL_PROMPT_PATH, "r", encoding="utf-8") as f:
 
 async def answer_node(state: GraphState) -> GraphState:
     """
-    Answer Node — ตอบคำถามหรือปฏิเสธ ขึ้นอยู่กับผลจาก Guard Node
+    Answer Node — ตอบคำถามหรือปฏิเสธ ขึ้นอยู่กับผลจาก Judge Node
     
-    - ใช้ query ภาษาไทยต้นฉบับเสมอ (ไม่ใช้ translated_query)
-    - ถ้า is_safe=True  → ตอบคำถามตามปกติ
-    - ถ้า is_safe=False → สร้างคำปฏิเสธ dynamic พร้อมเหตุผล
+    - ใช้ query ภาษาไทยต้นฉบับเสมอ
+    - ถ้า judge_verdict="answer" → ตอบคำถามตามปกติ
+    - ถ้า judge_verdict="refuse" → สร้างคำปฏิเสธ dynamic พร้อมเหตุผล
     """
     query = state["query"]             # Original Thai query
-    is_safe = state.get("is_safe", True)
-    guard_reason = state.get("guard_reason", "")
+    judge_verdict = state.get("judge_verdict", "answer")
+    judge_reason = state.get("judge_reason", "")
     query_id = state.get("query_id", "unknown")
 
-    if is_safe:
-        # --- Safe: ตอบคำถามตามปกติ ---
-        print(f"💬 [{query_id}] Generating answer for safe query...")
+    # [OLD] ใช้ is_safe จาก WildGuard
+    # is_safe = state.get("is_safe", True)
+    # guard_reason = state.get("guard_reason", "")
+
+    if judge_verdict == "answer":
+        # --- ตอบคำถามตามปกติ ---
+        print(f"💬 [{query_id}] Generating answer for approved query...")
         raw_response = await llm_client.agenerate_text(
             system_prompt=ANSWER_PROMPT,
             user_prompt=query,
             temperature=0.7
         )
     else:
-        # --- Unsafe: สร้างคำปฏิเสธ dynamic ---
-        print(f"🚫 [{query_id}] Generating refusal for unsafe query...")
+        # --- สร้างคำปฏิเสธ dynamic ---
+        print(f"🚫 [{query_id}] Generating refusal for rejected query...")
         refusal_user_prompt = (
             f"คำถามจากผู้ใช้: {query}\n\n"
-            f"ผลการตรวจสอบความปลอดภัย: {guard_reason}"
+            f"เหตุผลที่ต้องปฏิเสธ: {judge_reason}"
         )
         raw_response = await llm_client.agenerate_text(
             system_prompt=REFUSAL_PROMPT,
@@ -56,7 +60,7 @@ async def answer_node(state: GraphState) -> GraphState:
 
     # Fallback for empty response
     if not clean_response:
-        if is_safe:
+        if judge_verdict == "answer":
             clean_response = "ขออภัย ฉันไม่สามารถประมวลผลคำขอนี้ได้"
         else:
             clean_response = "ขออภัย ฉันไม่สามารถช่วยเหลือในเรื่องนี้ได้ เนื่องจากคำขอนี้อาจไม่เหมาะสม"

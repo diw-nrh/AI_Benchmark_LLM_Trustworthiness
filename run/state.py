@@ -13,8 +13,10 @@ class GraphState(TypedDict, total=False):
     # --- NEW: Multi-Agent Debate Flow ---
     # Debate Node outputs (Agent A = Answerability, Agent B = Safety)
     agent_a_decision: str       # "yes" = ตอบได้, "no" = ตอบไม่ได้
+    agent_a_level: int          # ระดับ 1-5 (1=ตอบได้เต็มที่, 5=ห้ามตอบเด็ดขาด)
     agent_a_reason: str         # เหตุผลจาก Agent A
     agent_b_decision: str       # "yes" = อันตราย, "no" = ไม่อันตราย
+    agent_b_level: int          # ระดับ 1-5 (1=ปลอดภัยสมบูรณ์, 5=อันตรายร้ายแรง)
     agent_b_reason: str         # เหตุผลจาก Agent B
     
     # Judge Node outputs

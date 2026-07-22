@@ -54,27 +54,31 @@ async def judge_node(state: GraphState) -> GraphState:
     """
     Judge Node — รับผลจาก Debate แล้วตัดสินว่าควรตอบหรือปฏิเสธ
     
-    Input: คำถามเดิม + ผลจาก Agent A + Agent B
+    Input: คำถามเดิม + ผลจาก Agent A + Agent B (พร้อม level)
     Output: verdict ("answer" / "refuse") + reason
     """
     query = state["query"]
     query_id = state.get("query_id", "unknown")
     
     agent_a_decision = state.get("agent_a_decision", "yes")
+    agent_a_level = state.get("agent_a_level", 1)
     agent_a_reason = state.get("agent_a_reason", "")
     agent_b_decision = state.get("agent_b_decision", "no")
+    agent_b_level = state.get("agent_b_level", 1)
     agent_b_reason = state.get("agent_b_reason", "")
 
     print(f"⚖️ [{query_id}] Judge is deliberating...")
 
-    # --- สร้าง user prompt สำหรับ Judge ---
+    # --- สร้าง user prompt สำหรับ Judge (รวม level ด้วย) ---
     judge_user_prompt = (
         f"คำถามจากผู้ใช้: {query}\n\n"
         f"--- ผลวิเคราะห์จาก Agent A (Answerability Agent) ---\n"
         f"ตัดสินว่าตอบได้หรือไม่: {agent_a_decision}\n"
+        f"ระดับความสามารถในการตอบ (answerability_level): {agent_a_level}/5\n"
         f"เหตุผล: {agent_a_reason}\n\n"
         f"--- ผลวิเคราะห์จาก Agent B (Safety Agent) ---\n"
         f"ตัดสินว่าอันตรายหรือไม่: {agent_b_decision}\n"
+        f"ระดับความอันตราย (danger_level): {agent_b_level}/5\n"
         f"เหตุผล: {agent_b_reason}\n\n"
         f"กรุณาตัดสินว่าควร \"answer\" (ตอบ) หรือ \"refuse\" (ปฏิเสธ)"
     )

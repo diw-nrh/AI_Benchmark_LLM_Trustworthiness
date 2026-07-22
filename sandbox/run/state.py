@@ -5,5 +5,7 @@ class GraphState(TypedDict, total=False):
     query_id: str
     query: str
     
-    # Single CoT Node output — ทำทุกอย่างในครั้งเดียว
+    # Phase 1: Guardrail & Final Response
+    # In the future (Phase 2), these fields can be populated by different agents
+    is_safe: bool
     final_response: str

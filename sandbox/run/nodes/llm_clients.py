@@ -2,41 +2,36 @@ from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.engine.async_llm_engine import AsyncLLMEngine
 from vllm.sampling_params import SamplingParams
 import uuid
-from config import Qwen_PATH
+from config import MODEL_PATH
 
-
-# =============================================================================
-# Qwen LLM Client (vLLM Async Engine)
-# Sandbox version — ใช้ Qwen3-14B-Instruct ตัวเดียว, 1 call per query
-# =============================================================================
 class LLMClient:
-    """Inference Service — ใช้ Qwen ตัวเดียวทำทุกอย่างด้วย CoT"""
+    """Inference Service — Logical Microservice ที่ดูแลการ Generate ทั้งหมด"""
     
     def __init__(self):
+        # Engine จะยังไม่ถูกสร้างจนกว่าจะเรียก initialize()
         self.engine = None
-        self.model_name = Qwen_PATH
+        self.model_name = MODEL_PATH
 
     def initialize(self):
-        """เรียกใช้ตอน SYSTEM INITIALIZATION เท่านั้น"""
+        """เรียกใช้ตอน SYSTEM INITIALIZATION เท่านั้น ไม่สร้างตอน import"""
         print(f"--- SYSTEM INITIALIZATION (Inference Service) ---")
-        print(f"Loading Qwen from: {self.model_name}")
+        print(f"Loading model from: {self.model_name}")
         
         engine_args = AsyncEngineArgs(
             model=self.model_name,
             tensor_parallel_size=1,
-            gpu_memory_utilization=0.90,
-            max_model_len=8192,
-            enforce_eager=True,
-            dtype="bfloat16"
+            gpu_memory_utilization=0.9,
+            max_model_len=32768,
+            enforce_eager=True
         )
         
         self.engine = AsyncLLMEngine.from_engine_args(engine_args)
-        print("--- 🚀 Qwen Inference Service Initialized! ---")
+        print("--- 🚀 Inference Service Initialized! ---")
 
-    async def agenerate_text(self, system_prompt: str, user_prompt: str, temperature: float = 0.7, max_tokens: int = 1024) -> str:
+    async def agenerate_text(self, system_prompt: str, user_prompt: str, temperature: float = 0.7) -> str:
         """
         Generate text using local vLLM engine.
-        Qwen3 ChatML format — ปล่อยให้ thinking mode ทำงานตามปกติ
+        We format the prompt manually to Qwen3's ChatML format.
         """
         if self.engine is None:
             raise RuntimeError("LLMClient has not been initialized! Call llm_client.initialize() first.")
@@ -47,12 +42,13 @@ class LLMClient:
         sampling_params = SamplingParams(
             temperature=temperature,
             top_p=0.9,
-            max_tokens=max_tokens,
+            max_tokens=1024,
             stop=["<|im_end|>", "<|endoftext|>"]
         )
         
         request_id = str(uuid.uuid4())
         try:
+            # Generate output via async generator
             generator = self.engine.generate(prompt, sampling_params, request_id)
             final_output = ""
             async for request_output in generator:
@@ -60,11 +56,8 @@ class LLMClient:
                 
             return final_output.strip()
         except Exception as e:
-            print(f"[ERROR] Qwen Inference failed: {e}")
+            print(f"[ERROR] Inference Service failed: {e}")
             return ""
 
-
-# =============================================================================
-# Singleton instance
-# =============================================================================
+# Singleton instance — แต่ยังไม่โหลดโมเดล จนกว่าจะเรียก .initialize()
 llm_client = LLMClient()

@@ -35,7 +35,8 @@ def call_progress(i):
 def initialize_system():
     """
     --- SYSTEM INITIALIZATION ---
-    โหลด Qwen ตัวเดียว — ง่าย เร็ว ประหยัด VRAM
+    เรียกก่อนเริ่มประมวลผล เพื่อโหลดโมเดลลง GPU
+    (แนวเดียวกับโค้ด LANTA เดิม)
     """
     print("--- SYSTEM INITIALIZATION ---")
     
@@ -45,7 +46,9 @@ def initialize_system():
     print("--- INITIALIZATION COMPLETE ---")
 
 async def process_single_query(inputs: dict, semaphore: asyncio.Semaphore) -> dict:
-    """Process a single query through the LangGraph under Semaphore limits."""
+    """
+    Process a single query through the LangGraph under Semaphore limits.
+    """
     async with semaphore:
         print(f"⚡ Processing Query ID: {inputs['query_id']}")
         try:
@@ -73,18 +76,19 @@ async def task_wrapper(inputs: dict, semaphore: asyncio.Semaphore, progress_stat
 async def run_pipeline():
     print("\n============================================")
     print("       TRUSTWORTHINESS CHALLENGE (PHASE 1)    ")
-    print("       [SANDBOX] Single CoT Node (Qwen Only)")
+    print("       Logical Microservice (Offline)       ")
     print("============================================\n")
     
     start_time = time.time()
     
-    # 0. Initialize System
+    # 0. Initialize System (โหลดโมเดลก่อน)
     initialize_system()
     
     # 1. Load Dataset
     print(f"📥 Loading dataset from {config.DATASET_PATH}...")
     if not os.path.exists(config.DATASET_PATH):
         print(f"[ERROR] Dataset not found at: {config.DATASET_PATH}")
+        # Fallback to local dataset for testing if absolute path fails
         fallback_path = os.path.join(config.PROJECT_ROOT, "dataset.csv")
         if os.path.exists(fallback_path):
             print(f"[INFO] Falling back to local dataset: {fallback_path}")
@@ -108,14 +112,18 @@ async def run_pipeline():
         }
         tasks.append(task_wrapper(inputs, semaphore, progress_state))
     
-    # 3. Run in Parallel
+    # 3. Run in Parallel (Order is guaranteed to be preserved by asyncio.gather)
     results = await asyncio.gather(*tasks)
     
     # 4. Save to Submission CSV
     print(f"\n💾 Saving results to {config.RESULT_CSV_PATH}...")
     os.makedirs(os.path.dirname(config.RESULT_CSV_PATH), exist_ok=True)
     submission_df = pd.DataFrame(results)
+    
+    # Enforce correct column order just in case
     submission_df = submission_df[["id", "response"]]
+    
+    # Ensure encoding is strictly utf-8 and newlines are correct
     submission_df.to_csv(config.RESULT_CSV_PATH, index=False, encoding='utf-8', lineterminator='\n')
     
     # Final Watchdog Call
@@ -128,6 +136,7 @@ def main():
     print("⏳ หน่วงเวลา 10 วินาที เพื่อให้ระบบเก็บ Log (ตามคำแนะนำทีมงาน)...")
     time.sleep(10)
     
+    # เรียก Progress ทันทีตั้งแต่เริ่ม เพื่อต่ออายุ Watchdog ไม่ให้มันตัดจบ!
     call_progress(0)
     
     try:

@@ -26,9 +26,9 @@ def build_dynamic_prompt() -> str:
     if EXAMPLES:
         prompt += "\n\n[FEW-SHOT EXAMPLES (For Reference)]\n"
         
-        # Separate examples into SAFE and UNSAFE based on the text in 'think'
-        safe_examples = [ex for ex in EXAMPLES if "(SAFE)" in ex['think']]
-        unsafe_examples = [ex for ex in EXAMPLES if "(UNSAFE)" in ex['think']]
+        # Separate examples into SAFE and UNSAFE using the 'decision' parameter
+        safe_examples = [ex for ex in EXAMPLES if ex.get("decision") == "SAFE"]
+        unsafe_examples = [ex for ex in EXAMPLES if ex.get("decision") == "UNSAFE"]
         
         selected_examples = []
         if safe_examples:
@@ -40,7 +40,7 @@ def build_dynamic_prompt() -> str:
         random.shuffle(selected_examples)
         
         for i, ex in enumerate(selected_examples):
-            decision = "SAFE" if "(SAFE)" in ex['think'] else "UNSAFE"
+            decision = ex.get("decision", "UNSAFE")
             prompt += f"\n--- Example {i+1} ({ex['category']}) ---\n"
             prompt += f"User Query: {ex['query']}\n"
             prompt += f"Draft Response: {ex['response']}\n"

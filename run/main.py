@@ -79,7 +79,7 @@ async def task_wrapper(inputs: dict, semaphore: asyncio.Semaphore, progress_stat
 async def run_pipeline():
     print("\n============================================")
     print("       TRUSTWORTHINESS CHALLENGE (PHASE 1)    ")
-    print("       Multi-Agent Debate Flow (Qwen Only) ")
+    print("       Internal Sandwich Guardrail (Single Node) ")
     print("============================================\n")
     
     start_time = time.time()

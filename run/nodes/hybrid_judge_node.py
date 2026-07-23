@@ -93,8 +93,8 @@ async def hybrid_judge_node(state: GraphState) -> GraphState:
             else:
                 unsafe_votes += 1
                 
-    # Majority Vote
-    is_safe = safe_votes > unsafe_votes
+    # Veto System: If EVEN ONE judge says UNSAFE, block it!
+    is_safe = unsafe_votes == 0
     
     if is_safe:
         state["final_response"] = draft_response

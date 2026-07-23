@@ -8,7 +8,7 @@ from nodes.llm_clients import llm_client
 
 # Load System Prompt from Markdown File
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROMPT_PATH = os.path.join(CURRENT_DIR, "..", "skills", "hybrid_judge", "SKILL.md")
+PROMPT_PATH = os.path.join(CURRENT_DIR, "..", "skills", "hybrid-judge", "SKILL.md")
 EXAMPLES_PATH = os.path.join(CURRENT_DIR, "..", "skills", "guardrail", "examples.json")
 
 with open(PROMPT_PATH, "r", encoding="utf-8") as f:

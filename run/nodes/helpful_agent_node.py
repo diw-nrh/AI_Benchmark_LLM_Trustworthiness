@@ -4,7 +4,7 @@ from nodes.llm_clients import llm_client
 
 # Load System Prompt
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROMPT_PATH = os.path.join(CURRENT_DIR, "..", "skills", "helpful_agent", "SKILL.md")
+PROMPT_PATH = os.path.join(CURRENT_DIR, "..", "skills", "helpful-agent", "SKILL.md")
 
 with open(PROMPT_PATH, "r", encoding="utf-8") as f:
     SYSTEM_PROMPT = f.read()

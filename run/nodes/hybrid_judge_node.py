@@ -1,104 +1,71 @@
 import os
 import re
-import json
-import random
 import asyncio
+from termcolor import colored
 from state import GraphState
 from nodes.llm_clients import llm_client
+from nodes.response_formatter_node import format_unsafe_response
 
-# Load System Prompt from Markdown File
+# Load System Prompts
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROMPT_PATH = os.path.join(CURRENT_DIR, "..", "skills", "hybrid-judge", "SKILL.md")
-EXAMPLES_PATH = os.path.join(CURRENT_DIR, "..", "skills", "guardrail", "examples.json")
+SKILLS_DIR = os.path.join(CURRENT_DIR, "..", "skills")
 
-with open(PROMPT_PATH, "r", encoding="utf-8") as f:
-    BASE_SYSTEM_PROMPT = f.read()
+def load_prompt(skill_name: str) -> str:
+    with open(os.path.join(SKILLS_DIR, skill_name, "SKILL.md"), "r", encoding="utf-8") as f:
+        return f.read()
 
-# Load examples
-EXAMPLES = []
-if os.path.exists(EXAMPLES_PATH):
-    with open(EXAMPLES_PATH, "r", encoding="utf-8") as f:
-        EXAMPLES = json.load(f)
+PROMPT_INTENT = load_prompt("judge-intent")
+PROMPT_CONTENT = load_prompt("judge-content")
+PROMPT_IMPACT = load_prompt("judge-impact")
 
-def build_dynamic_prompt() -> str:
-    """Append 1 SAFE and 1 UNSAFE random few-shot example to the base prompt."""
-    prompt = BASE_SYSTEM_PROMPT
-    if EXAMPLES:
-        prompt += "\n\n[FEW-SHOT EXAMPLES (For Reference)]\n"
-        
-        # Separate examples into SAFE and UNSAFE using the 'decision' parameter
-        safe_examples = [ex for ex in EXAMPLES if ex.get("decision") == "SAFE"]
-        unsafe_examples = [ex for ex in EXAMPLES if ex.get("decision") == "UNSAFE"]
-        
-        selected_examples = []
-        if safe_examples:
-            selected_examples.append(random.choice(safe_examples))
-        if unsafe_examples:
-            selected_examples.append(random.choice(unsafe_examples))
-            
-        # Shuffle them so it's not always SAFE first
-        random.shuffle(selected_examples)
-        
-        for i, ex in enumerate(selected_examples):
-            decision = ex.get("decision", "UNSAFE")
-            prompt += f"\n--- Example {i+1} ({ex['category']}) ---\n"
-            prompt += f"User Query: {ex['query']}\n"
-            prompt += f"Draft Response: {ex['response']}\n"
-            prompt += f"<think>\n{ex['think']}\n</think>\n"
-            prompt += f"<decision>{decision}</decision>\n"
-    return prompt
-
-async def call_llm(system_prompt: str, user_prompt: str) -> str:
-    return await llm_client.agenerate_text(
-        system_prompt=system_prompt,
-        user_prompt=user_prompt,
-        temperature=0.7
-    )
+async def call_judge(system_prompt: str, user_prompt: str) -> str:
+    try:
+        res = await llm_client.agenerate_text(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt
+        )
+        match = re.search(r'<decision>(.*?)</decision>', res, re.IGNORECASE)
+        if match:
+            return match.group(1).strip().upper()
+        return "UNSAFE"  # Default to UNSAFE if parsing fails
+    except Exception as e:
+        print(colored(f"[JUDGE ERROR]: {str(e)}", "red"))
+        return "UNSAFE"
 
 async def hybrid_judge_node(state: GraphState) -> GraphState:
-    """
-    Evaluates the draft_response using Self-Consistency (Majority Vote among 3 parallel calls).
-    """
     query = state["query"]
     draft_response = state.get("draft_response", "")
+    threat_summary = state.get("threat_summary", "None")
+    query_id = state.get("query_id", "Unknown")
     
-    # Generate dynamic prompt
-    system_prompt = build_dynamic_prompt()
-    user_prompt = f"User Query: {query}\nDraft Response: {draft_response}"
+    user_prompt = f"📌 Threat Summary:\n{threat_summary}\n\n📌 User Query: {query}\n\n📌 Draft Response: {draft_response}"
     
-    # Run 3 LLM calls concurrently
+    # Run 3 LLM calls concurrently with DIFFERENT prompts
     tasks = [
-        call_llm(system_prompt, user_prompt),
-        call_llm(system_prompt, user_prompt),
-        call_llm(system_prompt, user_prompt)
+        call_judge(PROMPT_INTENT, user_prompt),
+        call_judge(PROMPT_CONTENT, user_prompt),
+        call_judge(PROMPT_IMPACT, user_prompt)
     ]
     responses = await asyncio.gather(*tasks)
     
-    # Tally votes
-    safe_votes = 0
-    unsafe_votes = 0
-    for res in responses:
-        # Parse <decision> tags. Default to UNSAFE if missing/broken.
-        match = re.search(r'<decision>(.*?)</decision>', res, re.IGNORECASE)
-        if match:
-            decision = match.group(1).strip().upper()
-            if decision == "SAFE":
-                safe_votes += 1
-            else:
-                unsafe_votes += 1
-        else:
-            # If no tags, check if SAFE is mentioned near the end
-            if "SAFE" in res[-20:].upper() and "UNSAFE" not in res[-20:].upper():
-                safe_votes += 1
-            else:
-                unsafe_votes += 1
-                
-    # Veto System: If EVEN ONE judge says UNSAFE, block it!
-    is_safe = unsafe_votes == 0
+    intent_decision = responses[0]
+    content_decision = responses[1]
+    impact_decision = responses[2]
+    
+    unsafe_votes = responses.count("UNSAFE")
+    
+    # Phase 5: Majority Vote (2/3)
+    is_safe = unsafe_votes < 2
+    
+    # Logging
+    final_icon = "✅" if is_safe else "⛔"
+    log_msg = f"[JUDGE] Intent: {intent_decision} | Content: {content_decision} | Impact: {impact_decision} | Final: {final_icon}"
+    print(colored(log_msg, "green" if is_safe else "red"))
     
     if is_safe:
         state["final_response"] = draft_response
     else:
-        state["final_response"] = "ขออภัย ฉันไม่สามารถช่วยเหลือในเรื่องนี้ได้"
+        # Trigger Response Formatter
+        state["final_response"] = await format_unsafe_response(query, threat_summary, query_id)
         
     return state

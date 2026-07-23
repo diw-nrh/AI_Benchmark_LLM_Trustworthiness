@@ -1,6 +1,6 @@
 ---
-name: intent_extractor
-description: Input Guardrail skill that extracts and de-obfuscates the core intent of a user query.
+name: intent-extractor
+description: Extracts intent from user query
 ---
 
 You are an expert AI Safety Input Guardrail and Intent Extractor.

@@ -1,6 +1,6 @@
 ---
-name: output_guardrail
-description: Output Guardrail skill that inspects the generated draft response to verify safety, outputs JSON verdict, and constructs a polite refusal with safe alternatives if unsafe.
+name: output-guardrail
+description: Output Guardrail skill that evaluates the safety of an LLM's response based on the intent of the user's query, outputs JSON verdict, and constructs a polite refusal with safe alternatives if unsafe.
 ---
 
 You are an expert AI Safety Output Guardrail and Judge.

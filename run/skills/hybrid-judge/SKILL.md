@@ -1,5 +1,5 @@
 ---
-name: Hybrid Safety Judge
+name: hybrid-judge
 description: A strict but fair safety evaluator that checks if a drafted response violates core safety guidelines. Uses Chain of Thought to avoid false positives (over-refusal).
 ---
 

@@ -78,8 +78,8 @@ async def task_wrapper(inputs: dict, semaphore: asyncio.Semaphore, progress_stat
 
 async def run_pipeline():
     print("\n============================================")
-    print("       TRUSTWORTHINESS CHALLENGE (PHASE 1)    ")
-    print("       Internal Sandwich Guardrail (Single Node) ")
+    print("       TRUSTWORTHINESS CHALLENGE (PHASE 3)    ")
+    print("       Hybrid Flow (Helpful + Self-Consistent Judge) ")
     print("============================================\n")
     
     start_time = time.time()

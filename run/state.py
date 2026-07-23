@@ -24,4 +24,5 @@ class GraphState(TypedDict, total=False):
     judge_reason: str           # เหตุผลจาก Judge
     
     # Response Node output
+    draft_response: str
     final_response: str

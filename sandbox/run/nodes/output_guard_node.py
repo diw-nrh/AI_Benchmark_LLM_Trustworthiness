@@ -6,7 +6,7 @@ from state import GraphState
 from nodes.llm_clients import llm_client
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROMPT_PATH = os.path.join(CURRENT_DIR, "..", "skills", "output_guardrail", "SKILL.md")
+PROMPT_PATH = os.path.join(CURRENT_DIR, "..", "skills", "output-guardrail", "SKILL.md")
 
 with open(PROMPT_PATH, "r", encoding="utf-8") as f:
     SYSTEM_PROMPT = f.read()
@@ -39,16 +39,15 @@ def parse_guard_json(raw_text: str) -> dict:
 async def output_guard_node(state: GraphState) -> GraphState:
     """
     Node 3 (Output Guardrail): ตรวจสอบ Draft Response เป็นด่านสุดท้ายก่อนส่งออก
+    ใช้แค่ Core Intent (ไม่ใช่ Query ตั้งต้น) เพื่อป้องกันไม่ให้ Model ถูกหลอกซ้ำ
     """
-    query = state["query"]
-    core_intent = state.get("core_intent", query)
+    core_intent = state.get("core_intent", state["query"])
     draft_response = state.get("draft_response", "")
     query_id = state.get("query_id", "unknown")
     
     print(f"🛡️ [{query_id}] [3/3] Running Output Guardrail Safety Check...")
     
     user_prompt = (
-        f"User Query: {query}\n"
         f"Core Intent: {core_intent}\n"
         f"Draft Response to check:\n{draft_response}\n\n"
         f"Please evaluate if the Draft Response is safe and respond in JSON."

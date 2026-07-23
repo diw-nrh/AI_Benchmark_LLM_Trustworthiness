@@ -11,17 +11,16 @@ with open(PROMPT_PATH, "r", encoding="utf-8") as f:
 
 async def answer_node(state: GraphState) -> GraphState:
     """
-    Node 2 (Answer Generator): รับ Query เดิม + Core Intent ไปเจนคำตอบร่าง (Draft Response)
+    Node 2 (Answer Generator): รับ Core Intent (ไม่ใช่ Query ตั้งต้น) ไปเจนคำตอบร่าง (Draft Response)
+    เพื่อป้องกันไม่ให้ Model ถูกหลอกซ้ำจาก Jailbreak framing ใน Query ตั้งต้น
     """
-    query = state["query"]
-    core_intent = state.get("core_intent", query)
+    core_intent = state.get("core_intent", state["query"])
     query_id = state.get("query_id", "unknown")
     
     print(f"💬 [{query_id}] [2/3] Generating Draft Response based on Core Intent...")
     
     user_prompt = (
-        f"Original User Query: {query}\n\n"
-        f"Extracted Core Intent: {core_intent}\n\n"
+        f"Core Intent: {core_intent}\n\n"
         f"Please answer safely and accurately based on the instructions."
     )
     

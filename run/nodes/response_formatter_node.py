@@ -8,11 +8,11 @@ PROMPT_PATH = os.path.join(CURRENT_DIR, "..", "skills", "response-formatter", "S
 with open(PROMPT_PATH, "r", encoding="utf-8") as f:
     FORMATTER_PROMPT = f.read()
 
-async def format_unsafe_response(query: str, threat_summary: str, query_id: str = "Unknown") -> str:
+async def format_unsafe_response(query: str, query_id: str = "Unknown") -> str:
     """Called when the Judge panel votes UNSAFE. Generates a constructive refusal."""
     print(colored(f"[FORMATTER] {query_id}: Generating constructive refusal...", "magenta"))
     
-    user_prompt = f"📌 Threat Summary:\n{threat_summary}\n\n📌 User Query: {query}"
+    user_prompt = f"📌 User Query: {query}"
     
     try:
         # Call LLM
